@@ -5,6 +5,7 @@ use crate::cli::CliArgs;
 mod cli;
 mod template;
 mod repository;
+mod config;
 
 fn main() -> anyhow::Result<()> {
     let args = cli::CliArgs::parse();
@@ -27,6 +28,6 @@ fn main() -> anyhow::Result<()> {
             }
         }
     }
-    
+
     Ok(())
 }

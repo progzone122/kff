@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 use git2::Repository;
 use serde::Deserialize;
 
+use crate::config::TEMPLATES_DIR;
+
 #[derive(Deserialize, Debug)]
 pub struct Repo {
     name: String,
@@ -19,26 +21,21 @@ pub fn search(template_name: &str) -> anyhow::Result<Repo> {
         }
     ]
     "#;
-    
+
     let repos: Vec<Repo> = serde_json::from_str(data)?;
-    
+
     for repo in repos {
         if repo.name == template_name {
             return Ok(repo);
         }
     }
-    
+
     Err(anyhow::anyhow!("Template {template_name} not found in repository"))
 }
 
 
 pub fn download(repo: &Repo) -> anyhow::Result<()> {
-    let data_dir = dirs::data_dir()
-        .unwrap_or_else(|| PathBuf::from("~/.local/share"))
-        .join("kff")
-        .join("templates");
-
-    let destination_path = data_dir.join(&repo.name);
+    let destination_path = TEMPLATES_DIR.join(&repo.name);
     if destination_path.exists() {
         loop {
             println!("Template '{}' has been previously downloaded. Use it?", repo.name);

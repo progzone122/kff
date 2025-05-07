@@ -381,6 +381,7 @@ dependencies = [
  "clap",
  "dirs",
  "git2",
+ "once_cell",
  "serde",
  "serde_json",
 ]
