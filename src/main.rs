@@ -1,6 +1,13 @@
+use std::collections::HashMap;
+use std::env::temp_dir;
+use std::path::{Path, PathBuf};
 use std::process;
 use clap::Parser;
+use dirs::template_dir;
+use fs_extra::dir::{copy, CopyOptions};
+use fs_extra::file;
 use crate::cli::CliArgs;
+use crate::config::TEMPLATES_DIR;
 
 mod cli;
 mod template;
@@ -12,14 +19,56 @@ fn main() -> anyhow::Result<()> {
 
     match args.command {
         cli::Commands::Generate(generate_args) => {
+            println!("Kindle Fucking Forge started...");
+            println!("{}", config::ASCII_ART);
+            
             println!("Searching for the {} template in the kff global repository...", generate_args.name);
             match repository::search(&generate_args.name) {
                 Ok(repo) => {
                     println!("Template found, cloning...");
                     if let Err(e) = repository::download(&repo) {
-                        eprintln!("[] ERROR: {e}");
+                        eprintln!("ERROR: {e}");
                         process::exit(1);
                     }
+                }
+                Err(e) => {
+                    eprintln!("ERROR: {e}");
+                    process::exit(1);
+                }
+            }
+
+            println!("Parsing the template.json file...");
+            let tdir: PathBuf = TEMPLATES_DIR.join(&generate_args.name);
+
+            // tmp dir
+            let tmp_template_path = temp_dir().join("kff").join(&generate_args.name);
+            if tmp_template_path.exists() {
+                std::fs::remove_dir_all(&tmp_template_path)?;
+            }
+
+            // Copying a template to a tmp dir
+            let mut options = CopyOptions::new();
+            options.overwrite = true;
+            options.copy_inside = true;
+            copy(&tdir, &tmp_template_path, &options)?;
+
+            match template::Template::parse_from_file(&tmp_template_path.join("template.json")) {
+                Ok(repo) => {
+                    println!("Starting the '{}' template generator", generate_args.name);
+                    let answers: HashMap<String, String> = repo.ask_questions();
+                    repo.apply_replacements(&answers, &tmp_template_path)?;
+
+                    // Unnecessary files need to be deleted
+                    file::remove(&tmp_template_path.join("template.json"))?;
+
+                    let out_path = std::env::current_dir()?.join(&generate_args.name);
+                    if out_path.exists() {
+                        std::fs::remove_dir_all(&out_path)?;
+                    }
+
+                    copy(&tmp_template_path, &out_path, &options)?;
+
+                    println!("Project generated at: {}", out_path.display());
                 }
                 Err(e) => {
                     eprintln!("ERROR: {e}");

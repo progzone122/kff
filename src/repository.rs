@@ -65,7 +65,7 @@ pub fn download(repo: &Repo) -> anyhow::Result<()> {
 
     Repository::clone(&repo.url, &destination_path)?;
 
-    println!("[] Cloned '{}' into {:?}", repo.url, destination_path);
+    println!("Cloned '{}' into {:?}", repo.url, destination_path);
 
     Ok(())
 }
