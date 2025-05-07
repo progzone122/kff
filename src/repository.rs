@@ -1,4 +1,6 @@
-use std::path::Path;
+use std::io;
+use std::io::Write;
+use std::path::{Path, PathBuf};
 use git2::Repository;
 use serde::Deserialize;
 
@@ -17,25 +19,56 @@ pub fn search(template_name: &str) -> anyhow::Result<Repo> {
         }
     ]
     "#;
-
-    // Парсим JSON в вектор
+    
     let repos: Vec<Repo> = serde_json::from_str(data)?;
-
-    // Ищем репозиторий с нужным именем
+    
     for repo in repos {
         if repo.name == template_name {
             return Ok(repo);
         }
     }
-
-    // Если репозиторий не найден, возвращаем ошибку
+    
     Err(anyhow::anyhow!("Template {template_name} not found in repository"))
 }
 
-pub fn download(repo: &Repo) -> anyhow::Result<()> {
-    let destination_path = Path::new(&repo.name);
 
-    Repository::clone(&repo.url, destination_path)?;
+pub fn download(repo: &Repo) -> anyhow::Result<()> {
+    let data_dir = dirs::data_dir()
+        .unwrap_or_else(|| PathBuf::from("~/.local/share"))
+        .join("kff")
+        .join("templates");
+
+    let destination_path = data_dir.join(&repo.name);
+    if destination_path.exists() {
+        loop {
+            println!("Template '{}' has been previously downloaded. Use it?", repo.name);
+            print!("(y/n) > ");
+            io::stdout().flush()?;
+
+            let mut answer = String::new();
+            io::stdin().read_line(&mut answer)?;
+            let answer = answer.trim().to_lowercase();
+
+            match answer.as_str() {
+                "n" => {
+                    std::fs::remove_dir_all(&destination_path)?;
+                    println!("Old template removed");
+                    break;
+                }
+                "y" => {
+                    println!("Using existing template");
+                    return Ok(());
+                }
+                _ => {
+                    println!("Error! Enter 'y' or 'n'");
+                }
+            }
+        }
+    }
+
+    Repository::clone(&repo.url, &destination_path)?;
+
+    println!("[] Cloned '{}' into {:?}", repo.url, destination_path);
 
     Ok(())
 }

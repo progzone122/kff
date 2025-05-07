@@ -4,7 +4,6 @@ use std::io::Write;
 use std::path::Path;
 use serde::{Deserialize, Serialize};
 
-
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Template {
     questions: Vec<Question>,
