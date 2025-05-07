@@ -5,7 +5,7 @@ use std::process;
 use clap::Parser;
 use dirs::template_dir;
 use fs_extra::dir::{copy, CopyOptions};
-use fs_extra::file;
+use fs_extra::{dir, file};
 use crate::cli::CliArgs;
 use crate::config::TEMPLATES_DIR;
 
@@ -21,7 +21,7 @@ fn main() -> anyhow::Result<()> {
         cli::Commands::Generate(generate_args) => {
             println!("Kindle Fucking Forge started...");
             println!("{}", config::ASCII_ART);
-            
+
             println!("Searching for the {} template in the kff global repository...", generate_args.name);
             match repository::search(&generate_args.name) {
                 Ok(repo) => {
@@ -58,10 +58,11 @@ fn main() -> anyhow::Result<()> {
                     let answers: HashMap<String, String> = repo.ask_questions();
                     repo.apply_replacements(&answers, &tmp_template_path)?;
 
-                    // Unnecessary files need to be deleted
+                    // Unnecessary files/dirs need to be deleted
                     file::remove(&tmp_template_path.join("template.json"))?;
+                    dir::remove(&tmp_template_path.join(".git"))?;
 
-                    let out_path = std::env::current_dir()?.join(&generate_args.name);
+                    let out_path = std::env::current_dir()?.join(&answers.get("name").unwrap_or(&generate_args.name));
                     if out_path.exists() {
                         std::fs::remove_dir_all(&out_path)?;
                     }
