@@ -11,10 +11,10 @@ fn main() -> anyhow::Result<()> {
 
     match args.command {
         cli::Commands::Generate(generate_args) => {
-            println!("Searching for the {} template in the kff repository...", generate_args.name);
+            println!("Searching for the {} template in the kff global repository...", generate_args.name);
             match repository::search(&generate_args.name) {
                 Ok(repo) => {
-                    println!("Template found, cloning the repository...");
+                    println!("Template found, cloning...");
                     if let Err(e) = repository::download(&repo) {
                         eprintln!("[] ERROR: {e}");
                         process::exit(1);
