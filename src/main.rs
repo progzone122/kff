@@ -62,7 +62,7 @@ fn main() -> anyhow::Result<()> {
                     file::remove(&tmp_template_path.join("template.json"))?;
                     dir::remove(&tmp_template_path.join(".git"))?;
 
-                    let out_path = std::env::current_dir()?.join(&answers.get("name").unwrap_or(&generate_args.name));
+                    let out_path = std::env::current_dir()?.join(&answers.get("app_name").unwrap_or(&generate_args.name));
                     if out_path.exists() {
                         std::fs::remove_dir_all(&out_path)?;
                     }
