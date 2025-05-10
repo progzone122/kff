@@ -1,3 +1,4 @@
+use std::fmt::format;
 use std::fs::File;
 use std::io::{BufReader, Cursor};
 use std::path::Path;
@@ -7,15 +8,28 @@ use reqwest::blocking::Client;
 use serde::Deserialize;
 use anyhow::{anyhow, Result};
 
-pub fn sdk() -> Result<(), Box<dyn std::error::Error>> {
-    let repo = "koreader/koxtoolchain";
-    let version = "latest";
-    let asset_name = "kindlehf.tar.gz";
+pub fn toolchain(target: &str) -> Result<()> {
+    let repo: &str = "koreader/koxtoolchain";
+    let version: &str = "latest";
+    let asset_name: &str = &format!("{target}.tar.gz");
 
     let url = get_release_download_url(repo, version, asset_name)?;
     println!("Downloading from: {}", url);
 
-    download_and_extract(&url, "./ksdk")?;
+    download_and_extract(&url, ".")?;
+
+    Ok(())
+}
+
+pub fn sdk(target: &str) -> Result<()> {
+    let repo: &str = "koreader/koxtoolchain";
+    let version: &str = "latest";
+    let asset_name: &str = &format!("{target}.tar.gz");
+
+    let url = get_release_download_url(repo, version, asset_name)?;
+    println!("Downloading from: {}", url);
+
+    download_and_extract(&url, ".")?;
 
     Ok(())
 }

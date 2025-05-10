@@ -80,8 +80,28 @@ fn main() -> anyhow::Result<()> {
             doctor::run()?;
         }
         cli::Commands::Install(installer_args) => {
-            println!("{:#?}", installer_args);
-            // installer::sdk();
+            match installer_args.names.get(0).map(String::as_str) {
+                Some("toolchain") => {
+                    if let Some(target) = installer_args.names.get(1) {
+                        installer::toolchain(target)?;
+                    } else {
+                        eprintln!("[ERROR] Missing toolchain target. Example: `kff install toolchain kindlehf`");
+                    }
+                },
+                Some("sdk") => {
+                    if let Some(target) = installer_args.names.get(1) {
+                        installer::sdk(target)?;
+                    } else {
+                        eprintln!("[ERROR] Missing sdk target. Example: `kff install sdk kindlehf`");
+                    }
+                }
+                Some(unknown) => {
+                    eprintln!("Unknown install target: {unknown}");
+                }
+                None => {
+                    eprintln!("No install subcommand given");
+                }
+            }
         }
     }
 
