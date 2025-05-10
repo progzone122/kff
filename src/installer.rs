@@ -7,7 +7,8 @@ use tar::Archive;
 use reqwest::blocking::Client;
 use serde::Deserialize;
 use anyhow::{anyhow, Result};
-use crate::config::HOME;
+use git2::Repository;
+use crate::config::{HOME, TEMPLATES_DIR};
 
 pub fn toolchain(target: &str) -> Result<()> {
     let repo: &str = "koreader/koxtoolchain";
@@ -17,23 +18,27 @@ pub fn toolchain(target: &str) -> Result<()> {
     let url = get_release_download_url(repo, version, asset_name)?;
     println!("Downloading from: {}", url);
 
-    download_and_extract(&url, &HOME)?;
+    let path_string: String = HOME.to_string_lossy().into_owned();
+    download_and_extract(&url, &path_string)?;
 
     Ok(())
 }
 
-pub fn sdk(target: &str) -> Result<()> {
-    let repo: &str = "koreader/koxtoolchain";
-    let version: &str = "latest";
-    let asset_name: &str = &format!("{target}.tar.gz");
-
-    let url = get_release_download_url(repo, version, asset_name)?;
-    println!("Downloading from: {}", url);
-
-    download_and_extract(&url, ".")?;
-
-    Ok(())
-}
+// pub fn sdk(target: &str) -> Result<()> {
+//     let destination_path = HOME.join(&repo.name);
+//     let url: &str = "https://github.com/KindleModding/kindle-sdk.git";
+//
+//     Repository::clone(url, &destination_path)?;
+//
+//     println!("Cloned '{}' into {:?}", repo.url, destination_path);
+//
+//     let url = get_release_download_url(repo, version, asset_name)?;
+//     println!("Downloading from: {}", url);
+//
+//     download_and_extract(&url, ".")?;
+//
+//     Ok(())
+// }
 
 #[derive(Debug, Deserialize)]
 struct ReleaseAsset {
