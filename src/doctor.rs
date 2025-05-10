@@ -3,10 +3,10 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 use anyhow::{anyhow, Result};
+use crate::config::KSDK;
 
 pub fn run() -> Result<()> {
-    let ksdk = env::var("KSDK").ok();
-    let lines = if let Some(ksdk_path) = ksdk.as_deref() {
+    let lines = if let Some(ksdk_path) = KSDK.as_deref() {
         let file_path = format!("{}/meson-crosscompile.txt", ksdk_path);
         read_first_lines(&file_path).unwrap_or_else(|e| {
             eprintln!("Error reading file: {}", e);
@@ -16,7 +16,7 @@ pub fn run() -> Result<()> {
         vec![]
     };
 
-    print_ksdk(ksdk.as_deref(), lines);
+    print_ksdk(KSDK.as_deref(), lines);
     Ok(())
 }
 

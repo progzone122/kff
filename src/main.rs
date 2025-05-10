@@ -1,12 +1,10 @@
 use std::collections::HashMap;
-use std::env::{temp_dir, VarError};
-use std::path::{Path, PathBuf};
-use std::{env, process};
+use std::env::{temp_dir};
+use std::path::{PathBuf};
+use std::{process};
 use clap::Parser;
-use dirs::template_dir;
 use fs_extra::dir::{copy, CopyOptions};
 use fs_extra::{dir, file};
-use crate::cli::CliArgs;
 use crate::config::TEMPLATES_DIR;
 
 mod cli;
@@ -14,6 +12,7 @@ mod template;
 mod repository;
 mod config;
 mod doctor;
+mod installer;
 
 fn main() -> anyhow::Result<()> {
     let args = cli::CliArgs::parse();

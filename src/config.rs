@@ -22,3 +22,6 @@ pub static TEMPLATES_DIR: Lazy<PathBuf> = Lazy::new(|| {
             .join("templates")
     }
 });
+pub static KSDK: Lazy<Option<String>> = Lazy::new(|| {
+    env::var("KSDK").ok()
+});
