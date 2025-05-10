@@ -46,7 +46,7 @@ pub fn print_ksdk(ksdk: Option<&str>, mesonfile: Vec<String>) {
         if ksdk.is_some() { "[OK]" } else { "[NOT SET]" },
         ksdk.unwrap_or("[ERROR]")
     );
-    print!("\nmeson-crosscompile.txt file: ");
+    print!("\nmeson-crosscompile.txt file (SDK): ");
     if !mesonfile.is_empty() {
         println!("");
         for line in mesonfile {
