@@ -7,6 +7,7 @@ use tar::Archive;
 use reqwest::blocking::Client;
 use serde::Deserialize;
 use anyhow::{anyhow, Result};
+use crate::config::HOME;
 
 pub fn toolchain(target: &str) -> Result<()> {
     let repo: &str = "koreader/koxtoolchain";
@@ -16,7 +17,7 @@ pub fn toolchain(target: &str) -> Result<()> {
     let url = get_release_download_url(repo, version, asset_name)?;
     println!("Downloading from: {}", url);
 
-    download_and_extract(&url, ".")?;
+    download_and_extract(&url, &HOME)?;
 
     Ok(())
 }

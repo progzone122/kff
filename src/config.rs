@@ -25,3 +25,10 @@ pub static TEMPLATES_DIR: Lazy<PathBuf> = Lazy::new(|| {
 pub static KSDK: Lazy<Option<String>> = Lazy::new(|| {
     env::var("KSDK").ok()
 });
+
+pub static HOME: Lazy<String> = Lazy::new(|| {
+    dirs::home_dir()
+        .unwrap_or_else(|| ".".into())
+        .to_string_lossy()
+        .into_owned()
+});
