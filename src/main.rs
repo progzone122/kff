@@ -79,6 +79,10 @@ fn main() -> anyhow::Result<()> {
         cli::Commands::Doctor => {
             doctor::run()?;
         }
+        cli::Commands::Install(installer_args) => {
+            println!("{:#?}", installer_args);
+            // installer::sdk();
+        }
     }
 
     Ok(())

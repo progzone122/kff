@@ -3,12 +3,17 @@ use clap::{Args, Parser, Subcommand};
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     Generate(GenerateArgs),
-    Doctor
+    Doctor,
+    Install(InstallerArgs)
 }
 
 #[derive(Args, Debug)]
 pub struct GenerateArgs {
     pub(crate) name: String,
+}
+#[derive(Args, Debug)]
+pub struct InstallerArgs {
+    pub(crate) names: Vec<String>,
 }
 
 #[derive(Parser, Debug)]
