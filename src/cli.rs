@@ -2,7 +2,8 @@ use clap::{Args, Parser, Subcommand};
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
-    Generate(GenerateArgs)
+    Generate(GenerateArgs),
+    Doctor
 }
 
 #[derive(Args, Debug)]

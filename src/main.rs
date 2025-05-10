@@ -1,7 +1,7 @@
 use std::collections::HashMap;
-use std::env::temp_dir;
+use std::env::{temp_dir, VarError};
 use std::path::{Path, PathBuf};
-use std::process;
+use std::{env, process};
 use clap::Parser;
 use dirs::template_dir;
 use fs_extra::dir::{copy, CopyOptions};
@@ -13,15 +13,15 @@ mod cli;
 mod template;
 mod repository;
 mod config;
+mod doctor;
 
 fn main() -> anyhow::Result<()> {
     let args = cli::CliArgs::parse();
 
     match args.command {
         cli::Commands::Generate(generate_args) => {
-            println!("Kindle Fucking Forge started...");
+            println!("Kindle Fucking Forge generate started...");
             println!("{}", config::ASCII_ART);
-
             println!("Searching for the {} template in the kff global repository...", generate_args.name);
             match repository::search(&generate_args.name) {
                 Ok(repo) => {
@@ -76,6 +76,9 @@ fn main() -> anyhow::Result<()> {
                     process::exit(1);
                 }
             }
+        }
+        cli::Commands::Doctor => {
+            doctor::run()?;
         }
     }
 
