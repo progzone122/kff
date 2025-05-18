@@ -90,7 +90,7 @@ fn main() -> anyhow::Result<()> {
                 },
                 Some("sdk") => {
                     if let Some(target) = installer_args.names.get(1) {
-                        // installer::sdk(target)?;
+                        installer::sdk(target)?;
                     } else {
                         eprintln!("[ERROR] Missing sdk target. Example: `kff install sdk kindlehf`");
                     }

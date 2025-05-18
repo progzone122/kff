@@ -7,10 +7,12 @@ use crate::config::KSDK;
 pub fn run() -> Result<()> {
     let lines = if let Some(ksdk_path) = KSDK.as_deref() {
         let file_path = format!("{}/meson-crosscompile.txt", ksdk_path);
-        read_first_lines(&file_path).unwrap_or_else(|e| {
+        let res: Vec<String> = read_first_lines(&file_path).unwrap_or_else(|e| {
             eprintln!("Error reading file: {}", e);
             vec![]
-        })
+        });
+        println!("file_path: {:#?}", res);
+        res
     } else {
         vec![]
     };

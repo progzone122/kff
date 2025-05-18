@@ -1,6 +1,7 @@
 use once_cell::sync::Lazy;
 use std::path::PathBuf;
 use std::env;
+use std::env::temp_dir;
 
 pub const ASCII_ART: &str = r#"
 :::    :::  ::::::::::  :::::::::: 
@@ -29,4 +30,7 @@ pub static KSDK: Lazy<Option<String>> = Lazy::new(|| {
 pub static HOME: Lazy<PathBuf> = Lazy::new(|| {
     dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
+});
+pub static TEMP: Lazy<PathBuf> = Lazy::new(|| {
+    temp_dir()
 });
