@@ -1,8 +1,7 @@
-use std::io::Read;
-use std::fmt::format;
-use std::fs::File;
+use std::io::{BufRead, Read};
 use std::io::{BufReader, Cursor};
 use std::path::Path;
+use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::time::Instant;
 use flate2::read::GzDecoder;
@@ -11,10 +10,52 @@ use reqwest::blocking::Client;
 use serde::Deserialize;
 use anyhow::{anyhow, Context, Result};
 use fs_extra::dir;
-use git2::{FetchOptions, Progress, RemoteCallbacks, Repository};
+use git2::{FetchOptions, Progress, RemoteCallbacks, Repository, SubmoduleUpdateOptions};
 use indicatif::{ProgressBar, ProgressStyle};
 use crate::config::{HOME, TEMP, TEMPLATES_DIR};
 
+
+fn run_command(cmd: &mut Command, desc: &str) -> Result<()> {
+    println!("Running {desc}...");
+
+    let mut child = cmd
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .with_context(|| format!("failed to start {desc}"))?;
+
+    let stdout = child.stdout.take().expect("no stdout");
+    let stderr = child.stderr.take().expect("no stderr");
+
+    let stdout_reader = BufReader::new(stdout);
+    let stderr_reader = BufReader::new(stderr);
+
+    // Параллельно читаем stdout и stderr
+    let stdout_thread = std::thread::spawn(move || {
+        for line in stdout_reader.lines().flatten() {
+            println!("{}", line);
+        }
+    });
+
+    let stderr_thread = std::thread::spawn(move || {
+        for line in stderr_reader.lines().flatten() {
+            eprintln!("{}", line);
+        }
+    });
+
+    let status = child
+        .wait()
+        .with_context(|| format!("failed to wait for {desc}"))?;
+
+    let _ = stdout_thread.join();
+    let _ = stderr_thread.join();
+
+    if !status.success() {
+        return Err(anyhow!("{desc} failed with exit code {:?}", status.code()));
+    }
+
+    Ok(())
+}
 
 pub fn clone_with_progress<P: AsRef<Path>>(url: &str, dest: P) -> Result<Repository> {
     println!("Cloning repository: {}", url);
@@ -30,11 +71,11 @@ pub fn clone_with_progress<P: AsRef<Path>>(url: &str, dest: P) -> Result<Reposit
 
     let pb_clone = Arc::clone(&pb);
 
+    // Настраиваем коллбек для прогресса
     let mut callbacks = RemoteCallbacks::new();
     callbacks.transfer_progress(move |stats: Progress| {
         let total = stats.total_objects();
         let received = stats.received_objects();
-
         if total > 0 {
             pb_clone.set_length(total as u64);
             pb_clone.set_position(received as u64);
@@ -49,12 +90,52 @@ pub fn clone_with_progress<P: AsRef<Path>>(url: &str, dest: P) -> Result<Reposit
     builder.fetch_options(fetch_options);
 
     let start = Instant::now();
-    let repo = builder
-        .clone(url, dest.as_ref())
+
+    // Клонируем основной репозиторий
+    let repo = builder.clone(url, dest.as_ref())
         .with_context(|| format!("Failed to clone {}", url))?;
 
     pb.finish_with_message("✅ Clone complete");
     println!("Cloned in {:?}", start.elapsed());
+
+    println!("Updating submodules with progress...");
+
+    // Для подмодулей нам нужен отдельный прогресс-бар
+    let pb_sub = Arc::new(ProgressBar::new(0));
+    pb_sub.set_style(
+        ProgressStyle::default_bar()
+            .template("Submodules: {msg} [{bar:40.green/black}] {pos}/{len} ({eta})")?
+            .progress_chars("=>-"),
+    );
+    pb_sub.set_message("Updating");
+
+    let pb_sub_clone = Arc::clone(&pb_sub);
+
+    // Коллбек для подмодулей
+    let mut submodule_callbacks = RemoteCallbacks::new();
+    submodule_callbacks.transfer_progress(move |stats: Progress| {
+        let total = stats.total_objects();
+        let received = stats.received_objects();
+        if total > 0 {
+            pb_sub_clone.set_length(total as u64);
+            pb_sub_clone.set_position(received as u64);
+        }
+        true
+    });
+
+    let mut sub_fetch_options = FetchOptions::new();
+    sub_fetch_options.remote_callbacks(submodule_callbacks);
+
+    let mut submodule_update_opts = SubmoduleUpdateOptions::new();
+    submodule_update_opts.fetch(sub_fetch_options);
+
+    // Обновляем каждый подмодуль
+    for mut sub in repo.submodules()? {
+        sub.update(true, Some(&mut submodule_update_opts))
+            .with_context(|| format!("Failed to update submodule {}", sub.name().unwrap_or("<unknown>")))?;
+    }
+
+    pb_sub.finish_with_message("✅ Submodules updated");
 
     Ok(repo)
 }
@@ -85,6 +166,13 @@ pub fn sdk(target: &str) -> Result<()> {
     clone_with_progress(&url, &destination_path)?;
 
     println!("Cloned 'kindle-sdk' into {:?}", destination_path);
+
+    let script_path = destination_path.join("gen-sdk.sh");
+
+    run_command(Command::new("chmod").arg("+x").arg(&script_path), "chmod gen-sdk.sh")?;
+    run_command(Command::new("sh").arg(&script_path).arg(target), "gen-sdk.sh")?;
+
+    println!("SDK successfully installed. It's time to forge!");
 
     Ok(())
 }
@@ -138,7 +226,6 @@ fn download_and_extract(url: &str, out_dir: &str) -> Result<()> {
     );
     pb.set_message("Downloading");
 
-    // Считаем тело по частям, обновляя прогресс-бар
     let mut downloaded: u64 = 0;
     let mut content = Vec::with_capacity(total_size as usize);
     let mut reader = response.take(total_size);

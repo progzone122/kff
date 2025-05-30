@@ -2,22 +2,42 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 use anyhow::{anyhow, Result};
+use glob::glob;
 use crate::config::KSDK;
 
 pub fn run() -> Result<()> {
-    let lines = if let Some(ksdk_path) = KSDK.as_deref() {
-        let file_path = format!("{}/meson-crosscompile.txt", ksdk_path);
-        let res: Vec<String> = read_first_lines(&file_path).unwrap_or_else(|e| {
-            eprintln!("Error reading file: {}", e);
-            vec![]
-        });
-        println!("file_path: {:#?}", res);
-        res
-    } else {
-        vec![]
-    };
+    if let Some(ksdk_path) = KSDK.as_deref() {
+        let pattern = format!("{}/arm-*-linux-gnueabihf/meson-crosscompile.txt", ksdk_path);
+        let mut files_data = Vec::new();
+        let mut found_any = false;
 
-    print_ksdk(KSDK.as_deref(), lines);
+        for entry in glob(&pattern)? {
+            match entry {
+                Ok(path) => {
+                    found_any = true;
+                    let path_str = path.to_string_lossy().to_string();
+                    match read_first_lines(&path_str) {
+                        Ok(lines) => {
+                            files_data.push((path_str, lines));
+                        }
+                        Err(e) => {
+                            eprintln!("Error reading '{}': {}", path.display(), e);
+                        }
+                    }
+                }
+                Err(e) => eprintln!("Glob error: {}", e),
+            }
+        }
+
+        if !found_any {
+            println!("No files found matching pattern: {}", pattern);
+        }
+
+        print_ksdk(KSDK.as_deref(), files_data);
+    } else {
+        println!("KSDK env not set");
+    }
+
     Ok(())
 }
 
@@ -41,21 +61,24 @@ pub fn read_first_lines(ksdk: &str) -> Result<Vec<String>> {
 
     Ok(lines)
 }
-pub fn print_ksdk(ksdk: Option<&str>, mesonfile: Vec<String>) {
+pub fn print_ksdk(ksdk: Option<&str>, mesonfiles: Vec<(String, Vec<String>)>) {
     println!("--- KFF Doctor ---");
     println!(
         "KSDK env: {}\nKSDK: {}",
         if ksdk.is_some() { "[OK]" } else { "[NOT SET]" },
         ksdk.unwrap_or("[ERROR]")
     );
-    print!("\nmeson-crosscompile.txt file (SDK): ");
-    if !mesonfile.is_empty() {
-        println!("");
-        for line in mesonfile {
-            println!("{}", line);
-        }
-        println!("...");
+
+    if mesonfiles.is_empty() {
+        println!("\nmeson-crosscompile.txt file(s) (SDK): [ERROR]");
     } else {
-        println!("[ERROR]");
+        println!("\nmeson-crosscompile.txt file(s) (SDK):");
+        for (filename, lines) in mesonfiles {
+            println!("Found file: {}", filename);
+            for line in lines {
+                println!("{}", line);
+            }
+            println!("---");
+        }
     }
 }
