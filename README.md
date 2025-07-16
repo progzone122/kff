@@ -1,6 +1,12 @@
 # Kindle Fucking Forge (KFF)
 A simple tool for setting up the environment (SDK/Toolchain) and generating projects from templates for Kindle development.
 
+## Install
+### Arch Linux
+Just use the [package from AUR](https://aur.archlinux.org/packages/kff)
+### Other distro
+Download the binary file from the [Releases tab](https://github.com/progzone122/kff/releases/latest)
+
 ## Usage
 ### Setting up the development environment
 1. Install Toolchain
