@@ -42,7 +42,7 @@ strip = '/home/diablo/x-tools/arm-kindlehf-linux-gnueabihf/bin/arm-kindlehf-linu
 ...
 ```
 ### Generating a project from a template
-Use templates from the [repository](./templates.json) or local templates from the `~/.share/local/kff/templates` directory (default).<br />
+Use templates from the [repository](./templates.json) or local templates from the `~/.local/share/kff/templates` directory (default).<br />
 **Example:**
 ```shell
 kff generate gtk2
