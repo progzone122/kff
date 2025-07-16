@@ -20,7 +20,7 @@ pub fn run() -> Result<()> {
 }
 
 pub fn read_first_lines(ksdk: &str) -> Result<Vec<String>> {
-    let path = Path::new(ksdk).join("meson-crosscompile.txt");
+    let path = Path::new(ksdk);
 
     let file = File::open(path).map_err(|err| anyhow!("File '{}' not found: {}", ksdk, err))?;
     let reader = BufReader::new(file);
