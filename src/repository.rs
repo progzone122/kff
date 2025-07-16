@@ -7,12 +7,27 @@ use serde::Deserialize;
 use crate::config::TEMPLATES_DIR;
 
 #[derive(Deserialize, Debug)]
+pub enum RepoSource {
+    Local,
+    Remote(String), // git url
+}
+
+#[derive(Deserialize, Debug)]
 pub struct Repo {
     name: String,
-    url: String,
+    url: RepoSource,
 }
 
 pub fn search(template_name: &str) -> anyhow::Result<Repo> {
+    let local_path = TEMPLATES_DIR.join(template_name);
+
+    if local_path.exists() && local_path.is_dir() {
+        return Ok(Repo {
+            name: template_name.to_string(),
+            url: RepoSource::Local,
+        });
+    }
+
     let data = r#"
     [
         {
@@ -36,36 +51,43 @@ pub fn search(template_name: &str) -> anyhow::Result<Repo> {
 
 pub fn download(repo: &Repo) -> anyhow::Result<()> {
     let destination_path = TEMPLATES_DIR.join(&repo.name);
-    if destination_path.exists() {
-        loop {
-            println!("Template '{}' has been previously downloaded. Use it?", repo.name);
-            print!("(y/n) > ");
-            io::stdout().flush()?;
 
-            let mut answer = String::new();
-            io::stdin().read_line(&mut answer)?;
-            let answer = answer.trim().to_lowercase();
+    match &repo.url {
+        RepoSource::Local => {
+            println!("Using local template '{}'", repo.name);
+            Ok(())
+        }
+        RepoSource::Remote(url) => {
+            if destination_path.exists() {
+                loop {
+                    println!("Template '{}' has been previously downloaded. Use it?", repo.name);
+                    print!("(y/n) > ");
+                    io::stdout().flush()?;
 
-            match answer.as_str() {
-                "n" => {
-                    std::fs::remove_dir_all(&destination_path)?;
-                    println!("Old template removed");
-                    break;
-                }
-                "y" => {
-                    println!("Using existing template");
-                    return Ok(());
-                }
-                _ => {
-                    println!("Error! Enter 'y' or 'n'");
+                    let mut answer = String::new();
+                    io::stdin().read_line(&mut answer)?;
+                    let answer = answer.trim().to_lowercase();
+
+                    match answer.as_str() {
+                        "n" => {
+                            std::fs::remove_dir_all(&destination_path)?;
+                            println!("Old template removed");
+                            break;
+                        }
+                        "y" => {
+                            println!("Using existing template");
+                            return Ok(());
+                        }
+                        _ => {
+                            println!("Error! Enter 'y' or 'n'");
+                        }
+                    }
                 }
             }
+
+            Repository::clone(url, &destination_path)?;
+            println!("Cloned '{}' into {:?}", url, destination_path);
+            Ok(())
         }
     }
-
-    Repository::clone(&repo.url, &destination_path)?;
-
-    println!("Cloned '{}' into {:?}", repo.url, destination_path);
-
-    Ok(())
 }
