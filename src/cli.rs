@@ -1,23 +1,24 @@
 use clap::{Args, Parser, Subcommand};
 
 #[derive(Subcommand, Debug)]
-enum Commands {
-    New(NewArgs)
+pub enum Commands {
+    Generate(GenerateArgs),
+    Doctor,
+    Install(InstallerArgs)
 }
 
 #[derive(Args, Debug)]
-struct NewArgs {
-    name: String,
-
-    #[arg(long)]
-    gtk: bool,
-    
-    
+pub struct GenerateArgs {
+    pub(crate) name: String,
+}
+#[derive(Args, Debug)]
+pub struct InstallerArgs {
+    pub(crate) names: Vec<String>,
 }
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 pub struct CliArgs {
     #[command(subcommand)]
-    command: Commands
+    pub(crate) command: Commands
 }
