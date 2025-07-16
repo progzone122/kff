@@ -24,10 +24,17 @@ fn main() -> anyhow::Result<()> {
             println!("Searching for the {} template in the kff global repository...", generate_args.name);
             match repository::search(&generate_args.name) {
                 Ok(repo) => {
-                    println!("Template found, cloning...");
-                    if let Err(e) = repository::download(&repo) {
-                        eprintln!("ERROR: {e}");
-                        process::exit(1);
+                    let use_local = repository::choose_local_or_download(&repo)
+                        .unwrap_or(false);
+
+                    if use_local {
+                        println!("Using local template '{}'", repo.name);
+                    } else {
+                        println!("Downloading template '{}'", repo.name);
+                        if let Err(e) = repository::download(&repo) {
+                            eprintln!("ERROR: {e}");
+                            process::exit(1);
+                        }
                     }
                 }
                 Err(e) => {

@@ -7,6 +7,7 @@ use serde::Deserialize;
 use crate::config::TEMPLATES_DIR;
 
 #[derive(Deserialize, Debug)]
+#[serde(untagged)]
 pub enum RepoSource {
     Local,
     Remote(String), // git url
@@ -14,8 +15,30 @@ pub enum RepoSource {
 
 #[derive(Deserialize, Debug)]
 pub struct Repo {
-    name: String,
+    pub(crate) name: String,
     url: RepoSource,
+}
+
+pub fn choose_local_or_download(repo: &Repo) -> anyhow::Result<bool> {
+    if let RepoSource::Local = repo.url {
+        loop {
+            println!("Local template '{}' found. Use it? (y/n)", repo.name);
+            print!("> ");
+            io::stdout().flush()?;
+
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
+            let input = input.trim().to_lowercase();
+
+            match input.as_str() {
+                "y" | "yes" => return Ok(true),
+                "n" | "no" => return Ok(false),
+                _ => println!("Please enter 'y' or 'n'."),
+            }
+        }
+    }
+
+    Ok(false)
 }
 
 pub fn search(template_name: &str) -> anyhow::Result<Repo> {

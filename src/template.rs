@@ -16,7 +16,7 @@ struct Question {
     prompt: String,
     #[serde(rename = "type")]
     qtype: String, // type is a reserved word in Rust
-    default: String,
+    default: serde_json::Value,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -61,16 +61,23 @@ impl Template {
         let mut answers = HashMap::new();
 
         for q in &self.questions {
-            let value = Self::validate(&q.prompt, &q.qtype, &q.default);
+            let value = Self::validate(&q.prompt, &q.qtype, q.default.clone());
             answers.insert(q.name.clone(), value);
         }
 
         answers
     }
 
-    fn validate(prompt: &str, qtype: &str, default: &str) -> String {
+    fn validate(prompt: &str, qtype: &str, default: serde_json::Value) -> String {
+        fn default_to_string(default: &serde_json::Value) -> String {
+            match default {
+                serde_json::Value::String(s) => s.clone(),
+                _ => default.to_string(),
+            }
+        }
+
         loop {
-            print!("{} [{}]: ", prompt, default);
+            print!("{} [{}]: ", prompt, default_to_string(&default));
             io::stdout().flush().unwrap();
 
             let mut input = String::new();
@@ -79,7 +86,7 @@ impl Template {
 
             // If input is empty, use default
             if trimmed.is_empty() {
-                return default.to_string();
+                return default_to_string(&default);
             }
 
             match qtype {
