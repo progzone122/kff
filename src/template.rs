@@ -61,16 +61,51 @@ impl Template {
         let mut answers = HashMap::new();
 
         for q in &self.questions {
-            print!("{} [{}]: ", q.prompt, q.default);
+            let value = Self::validate(&q.prompt, &q.qtype, &q.default);
+            answers.insert(q.name.clone(), value);
+        }
+
+        answers
+    }
+
+    fn validate(prompt: &str, qtype: &str, default: &str) -> String {
+        loop {
+            print!("{} [{}]: ", prompt, default);
             io::stdout().flush().unwrap();
 
             let mut input = String::new();
             io::stdin().read_line(&mut input).unwrap();
-            let input = input.trim();
+            let trimmed = input.trim();
 
-            answers.insert(q.name.clone(), if input.is_empty() { q.default.clone() } else { input.to_string() });
+            // If input is empty, use default
+            if trimmed.is_empty() {
+                return default.to_string();
+            }
+
+            match qtype {
+                "string" => return trimmed.to_string(),
+
+                "number" => {
+                    if trimmed.parse::<i64>().is_ok() {
+                        return trimmed.to_string();
+                    } else {
+                        println!("Invalid number, please enter a valid integer.");
+                    }
+                }
+
+                "bool" => {
+                    match trimmed.to_lowercase().as_str() {
+                        "true" | "1" | "yes" | "y" => return "true".to_string(),
+                        "false" | "0" | "no" | "n" => return "false".to_string(),
+                        _ => println!("Invalid boolean, please enter yes/no, true/false, 1/0."),
+                    }
+                }
+
+                _ => {
+                    println!("Unknown type '{}', treating input as string.", qtype);
+                    return trimmed.to_string();
+                }
+            }
         }
-
-        answers
     }
 }
