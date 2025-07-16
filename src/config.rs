@@ -34,3 +34,4 @@ pub static HOME: Lazy<PathBuf> = Lazy::new(|| {
 pub static TEMP: Lazy<PathBuf> = Lazy::new(|| {
     temp_dir()
 });
+pub static REPOSITORY: &str = "https://raw.githubusercontent.com/progzone122/kff/main/templates.json";

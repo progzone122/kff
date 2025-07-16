@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use git2::Repository;
 use serde::Deserialize;
 
-use crate::config::TEMPLATES_DIR;
+use crate::config::{REPOSITORY, TEMPLATES_DIR};
 
 #[derive(Deserialize, Debug)]
 #[serde(untagged)]
@@ -51,16 +51,10 @@ pub fn search(template_name: &str) -> anyhow::Result<Repo> {
         });
     }
 
-    let data = r#"
-    [
-        {
-            "name": "gtk2",
-            "url": "https://github.com/progzone122/kff-gtk2-template"
-        }
-    ]
-    "#;
+    let response = reqwest::blocking::get(REPOSITORY)?;
+    let data = response.text()?;
 
-    let repos: Vec<Repo> = serde_json::from_str(data)?;
+    let repos: Vec<Repo> = serde_json::from_str(&data)?;
 
     for repo in repos {
         if repo.name == template_name {
