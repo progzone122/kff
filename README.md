@@ -1,6 +1,18 @@
 # Kindle Fucking Forge (KFF)
 A simple tool for setting up the environment (SDK/Toolchain) and generating projects from templates for Kindle development.
 
+<img width="993" height="811" alt="image" src="https://github.com/user-attachments/assets/ae81554b-0ca6-4262-9c2f-e95761601e33" />
+
+
+## Installation
+### Arch Linux
+Just use the [package from AUR](https://aur.archlinux.org/packages/kff)
+```shell
+paru -S kff
+```
+### Other distro
+Download the binary file from the [Releases tab](https://github.com/progzone122/kff/releases/latest)
+
 ## Usage
 ### Setting up the development environment
 1. Install Toolchain
@@ -33,7 +45,7 @@ strip = '/home/diablo/x-tools/arm-kindlehf-linux-gnueabihf/bin/arm-kindlehf-linu
 ...
 ```
 ### Generating a project from a template
-Use templates from the [repository](./templates.json) or local templates from the `~/.share/local/kff/templates` directory (default).<br />
+Use templates from the [repository](./templates.json) or local templates from the `~/.local/share/kff/templates` directory (default).<br />
 **Example:**
 ```shell
 kff generate gtk2
