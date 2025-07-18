@@ -16,7 +16,15 @@ pub enum RepoSource {
 #[derive(Deserialize, Debug)]
 pub struct Repo {
     pub(crate) name: String,
-    url: RepoSource,
+    pub(crate) url: RepoSource,
+}
+impl Repo {
+    pub fn new(name: &str, url: RepoSource) -> Self {
+        Self {
+            name: name.to_string(),
+            url,
+        }
+    }
 }
 
 pub fn choose_local_or_download(repo: &Repo) -> anyhow::Result<bool> {
@@ -42,15 +50,6 @@ pub fn choose_local_or_download(repo: &Repo) -> anyhow::Result<bool> {
 }
 
 pub fn search(template_name: &str) -> anyhow::Result<Repo> {
-    let local_path = TEMPLATES_DIR.join(template_name);
-
-    if local_path.exists() && local_path.is_dir() {
-        return Ok(Repo {
-            name: template_name.to_string(),
-            url: RepoSource::Local,
-        });
-    }
-
     let response = reqwest::blocking::get(REPOSITORY)?;
     let data = response.text()?;
 
@@ -69,42 +68,18 @@ pub fn search(template_name: &str) -> anyhow::Result<Repo> {
 pub fn download(repo: &Repo) -> anyhow::Result<()> {
     let destination_path = TEMPLATES_DIR.join(&repo.name);
 
-    match &repo.url {
-        RepoSource::Local => {
-            println!("Using local template '{}'", repo.name);
-            Ok(())
-        }
-        RepoSource::Remote(url) => {
-            if destination_path.exists() {
-                loop {
-                    println!("Template '{}' has been previously downloaded. Use it?", repo.name);
-                    print!("(y/n) > ");
-                    io::stdout().flush()?;
+    let RepoSource::Remote(url) = &repo.url else {
+        return Err(anyhow::anyhow!(
+            "download() called on a local template '{}'",
+            repo.name
+        ));
+    };
 
-                    let mut answer = String::new();
-                    io::stdin().read_line(&mut answer)?;
-                    let answer = answer.trim().to_lowercase();
-
-                    match answer.as_str() {
-                        "n" => {
-                            std::fs::remove_dir_all(&destination_path)?;
-                            println!("Old template removed");
-                            break;
-                        }
-                        "y" => {
-                            println!("Using existing template");
-                            return Ok(());
-                        }
-                        _ => {
-                            println!("Error! Enter 'y' or 'n'");
-                        }
-                    }
-                }
-            }
-
-            Repository::clone(url, &destination_path)?;
-            println!("Cloned '{}' into {:?}", url, destination_path);
-            Ok(())
-        }
+    if destination_path.exists() {
+        std::fs::remove_dir_all(&destination_path)?;
     }
+
+    Repository::clone(url, &destination_path)?;
+    println!("Cloned '{}' into {:?}", url, destination_path);
+    Ok(())
 }

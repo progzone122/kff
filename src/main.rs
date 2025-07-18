@@ -6,6 +6,7 @@ use clap::Parser;
 use fs_extra::dir::{copy, CopyOptions};
 use fs_extra::{dir, file};
 use crate::config::TEMPLATES_DIR;
+use crate::repository::{Repo, RepoSource};
 
 mod cli;
 mod template;
@@ -22,22 +23,37 @@ fn main() -> anyhow::Result<()> {
             println!("Kindle Fucking Forge generate started...");
             println!("{}", config::ASCII_ART);
             println!("Searching for the {} template in the kff global repository...", generate_args.name);
-            match repository::search(&generate_args.name) {
-                Ok(repo) => {
-                    let use_local = repository::choose_local_or_download(&repo)
-                        .unwrap_or(false);
-
-                    if use_local {
-                        println!("Using local template '{}'", repo.name);
+            let repo = match repository::search(&generate_args.name) {
+                Ok(repo) => repo,
+                Err(e) => {
+                    // Couldn't get the remote repo -> try the local
+                    let local_path = TEMPLATES_DIR.join(&generate_args.name);
+                    if local_path.exists() && local_path.is_dir() {
+                        Repo::new(&generate_args.name, RepoSource::Local)
                     } else {
-                        println!("Downloading template '{}'", repo.name);
-                        if let Err(e) = repository::download(&repo) {
-                            eprintln!("ERROR: {e}");
-                            process::exit(1);
-                        }
+                        eprintln!("ERROR: Template '{}' not found remotely and no local copy available", generate_args.name);
+                        process::exit(1);
                     }
                 }
-                Err(e) => {
+            };
+
+            let use_local = match repo.url {
+                RepoSource::Local => true,
+                RepoSource::Remote(_) => {
+                    let local_path = TEMPLATES_DIR.join(&repo.name);
+                    if local_path.exists() && local_path.is_dir() {
+                        repository::choose_local_or_download(&Repo::new(&generate_args.name, RepoSource::Local))?
+                    } else {
+                        false
+                    }
+                }
+            };
+
+            if use_local {
+                println!("Using local template '{}'", repo.name);
+            } else {
+                println!("Downloading template '{}'", repo.name);
+                if let Err(e) = repository::download(&repo) {
                     eprintln!("ERROR: {e}");
                     process::exit(1);
                 }
